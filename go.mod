@@ -1,4 +1,4 @@
-module github.com/justinclift/mav3
+module github.com/justinclift/mavdecodertest
 
 go 1.14
 
