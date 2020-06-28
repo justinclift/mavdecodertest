@@ -42,7 +42,28 @@ func main() {
 		}
 
 		if frm, ok := evt.(*gomavlib.EventFrame); ok {
-			if frm.SystemId() != 1 {
+			switch frm.SystemId() {
+			case 1:
+				// This is a message from the drone
+				switch msg := frm.Message().(type) {
+				case *ardupilotmega.MessageHeartbeat: // Id 0
+					fmt.Printf("Heartbeat from drone at %v\n", time.Now().Format(time.RFC1123))
+					fmt.Printf("MAVLink version: %s\n", frm.Frame.GetVersion())
+					fmt.Printf("Drone status: %v\n", msg.SystemStatus)
+				default:
+					fmt.Printf("Drone message frame received at: %v\n", time.Now().Format(time.RFC1123))
+
+					fmt.Printf("MAVLink version: %d\n", frm.Frame.GetVersion())
+
+					fmt.Printf("System ID: %v\n", frm.SystemId())
+					fmt.Printf("Component ID: %v\n", frm.ComponentId())
+					fmt.Printf("Message ID: %d\n", frm.Message().GetId())
+
+					fmt.Printf("Message: %+v\n", frm.Message())
+
+					fmt.Printf("Checksum: %v\n", frm.Frame.GetChecksum())
+				}
+			case 255:
 				// This is a message from the Ground Control Station
 				switch msg := frm.Message().(type) {
 				case *ardupilotmega.MessageHeartbeat: // Id 0
@@ -94,7 +115,7 @@ func main() {
 						msg.Command, msg.TargetSystem, msg.TargetComponent)
 
 				default:
-					fmt.Printf("GCS Message frame received at: %v\n", time.Now().Format(time.RFC1123))
+					fmt.Printf("GCS message frame received at: %v\n", time.Now().Format(time.RFC1123))
 
 					fmt.Printf("MAVLink version: %d\n", frm.Frame.GetVersion())
 
