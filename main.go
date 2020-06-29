@@ -72,8 +72,105 @@ func main() {
 					fmt.Println()
 
 				case *ardupilotmega.MessageParamValue: // Id 22
-					fmt.Printf("Reply message from drone with parameter %s (index %d) value %v\n",
+					fmt.Printf("Param message from drone with parameter %s (index %d) value %v\n",
 						msg.ParamId, msg.ParamIndex, msg.ParamValue)
+
+					fmt.Println()
+
+				case *ardupilotmega.MessageGpsRawInt: // Id 24
+					sinceBoot, err := time.ParseDuration(fmt.Sprintf("%dus", msg.TimeUsec))
+					if err != nil {
+						panic(err)
+					}
+					fmt.Printf("Raw GPS values message sent from drone at: %v since boot\n", sinceBoot)
+					fmt.Printf("GPS fix type: %v, Lat: %v, Lon: %v, Alt: %v\n", msg.FixType, msg.Lat, msg.Lon, msg.Alt)
+					fmt.Printf("HDOP: %v, HDVP: %v, Ground speed: %v, Cog: %v\n", msg.Eph, msg.Epv, msg.Vel, msg.Cog)
+					fmt.Printf("# visible sats: %v, AltEllipsoid: %v, Pos uncert: %v, Alt uncert: %v, Spd uncert: %v\n",
+						msg.SatellitesVisible, msg.AltEllipsoid, msg.HAcc, msg.VAcc, msg.VelAcc)
+					fmt.Printf("Head uncert: %v, Yaw from north: %v\n", msg.HdgAcc, msg.Yaw)
+
+					fmt.Println()
+
+				case *ardupilotmega.MessageRawImu: // Id 27
+					sinceBoot, err := time.ParseDuration(fmt.Sprintf("%dus", msg.TimeUsec))
+					if err != nil {
+						panic(err)
+					}
+					fmt.Printf("Raw IMU values message sent from drone at: %v since boot\n", sinceBoot)
+					fmt.Printf("Accel - x: %d, y: %d, z: %d\n", msg.Xacc, msg.Yacc, msg.Zacc)
+					fmt.Printf("Angular speed around - x: %d, y: %d, z: %d\n", msg.Xgyro, msg.Ygyro, msg.Zgyro)
+					fmt.Printf("Magnetic field - x: %d, y: %d, z: %d\n", msg.Xmag, msg.Ymag, msg.Zmag)
+					fmt.Printf("IMU # %d, Temp: %d\n", msg.Id, msg.Temperature)
+
+					fmt.Println()
+
+				case *ardupilotmega.MessageScaledPressure: // Id 29
+					sinceBoot, err := time.ParseDuration(fmt.Sprintf("%dms", msg.TimeBootMs))
+					if err != nil {
+						panic(err)
+					}
+					fmt.Printf("Scaled pressure values message sent from drone at: %s after boot\n", sinceBoot)
+					// TODO: Find out how to interpret the "Temperature" value.  It's reporting "4012" just now, on a day
+					//       here in Aust that's probably only about 20 degress C at most.
+					fmt.Printf("Pressure - Abs: %0.2f, Diff: %0.2f, Temp: %d\n", msg.PressAbs, msg.PressDiff, msg.Temperature)
+
+					fmt.Println()
+
+				case *ardupilotmega.MessageAttitude: // Id 30
+					sinceBoot, err := time.ParseDuration(fmt.Sprintf("%dms", msg.TimeBootMs))
+					if err != nil {
+						panic(err)
+					}
+					fmt.Printf("Attitude message sent from drone at: %s after boot\n", sinceBoot)
+					fmt.Printf("Angles - Roll: %0.2f, Pitch: %0.2f, Yaw: %0.2f\n", msg.Roll, msg.Pitch, msg.Yaw)
+					fmt.Printf("Angular speed - Roll: %0.2f, Pitch: %0.2f, Yaw: %0.2f\n", msg.Rollspeed,
+						msg.Pitchspeed, msg.Yawspeed)
+
+					fmt.Println()
+
+				case *ardupilotmega.MessageGlobalPositionInt: // Id 33
+					sinceBoot, err := time.ParseDuration(fmt.Sprintf("%dms", msg.TimeBootMs))
+					if err != nil {
+						panic(err)
+					}
+					fmt.Printf("Filtered GPS Postion message sent from drone at: %s after boot\n", sinceBoot)
+					// TODO: Find out what the units of measurement/display are for these values
+					fmt.Printf("Lat: %d, Lon: %d, Alt (MSL): %d, Alt above gnd: %d\n", msg.Lat, msg.Lon,
+						msg.Alt, msg.RelativeAlt)
+					fmt.Printf("Ground speed - x: %d, y: %d, z: %d\n", msg.Vx, msg.Vy, msg.Vz)
+					fmt.Printf("Vehicle heading: %0.2f°\n", float32(msg.Hdg)/100.0)
+
+					fmt.Println()
+
+				case *ardupilotmega.MessageRcChannelsRaw: // Id 35
+					sinceBoot, err := time.ParseDuration(fmt.Sprintf("%dms", msg.TimeBootMs))
+					if err != nil {
+						panic(err)
+					}
+					fmt.Printf("RC Channels Raw message sent from drone at: %s after boot\n", sinceBoot)
+					fmt.Printf("Servo output port: %d, Receive signal str: %d\n", msg.Port, msg.Rssi)
+					fmt.Printf("RC channel values - 1: %d, 2: %d, 3: %d, 4: %d\n", msg.Chan1Raw, msg.Chan2Raw,
+						msg.Chan3Raw, msg.Chan4Raw)
+					fmt.Printf("RC channel values - 5: %d, 6: %d, 7: %d, 8: %d\n", msg.Chan5Raw, msg.Chan6Raw,
+						msg.Chan7Raw, msg.Chan8Raw)
+
+					fmt.Println()
+
+				case *ardupilotmega.MessageServoOutputRaw: // Id 36
+					sinceBoot, err := time.ParseDuration(fmt.Sprintf("%dus", msg.TimeUsec))
+					if err != nil {
+						panic(err)
+					}
+					fmt.Printf("Raw Servo Output message sent from drone at: %s after boot\n", sinceBoot)
+					fmt.Printf("Servo output port: %d\n", msg.Port)
+					fmt.Printf("Servo output values - 1: %d, 2: %d, 3: %d, 4: %d\n", msg.Servo1Raw, msg.Servo2Raw,
+						msg.Servo3Raw, msg.Servo4Raw)
+					fmt.Printf("Servo output values - 5: %d, 6: %d, 7: %d, 8: %d\n", msg.Servo5Raw, msg.Servo6Raw,
+						msg.Servo7Raw, msg.Servo8Raw)
+					fmt.Printf("Servo output values - 9: %d, 10: %d, 11: %d, 12: %d\n", msg.Servo9Raw,
+						msg.Servo10Raw, msg.Servo11Raw, msg.Servo12Raw)
+					fmt.Printf("Servo output values - 13: %d, 14: %d, 15: %d, 16: %d\n", msg.Servo13Raw,
+						msg.Servo14Raw, msg.Servo15Raw, msg.Servo16Raw)
 
 					fmt.Println()
 
@@ -83,175 +180,8 @@ func main() {
 					fmt.Println()
 
 				// TODO: Fill out the details for these
-				case *ardupilotmega.MessageGpsRawInt: // Id 24
-					//// Timestamp (UNIX Epoch time or time since system boot). The receiving end can infer timestamp format (since 1.1.1970 or since system boot) by checking for the magnitude of the number.
-					//TimeUsec uint64
-					//// GPS fix type.
-					//FixType GPS_FIX_TYPE `mavenum:"uint8"`
-					//// Latitude (WGS84, EGM96 ellipsoid)
-					//Lat int32
-					//// Longitude (WGS84, EGM96 ellipsoid)
-					//Lon int32
-					//// Altitude (MSL). Positive for up. Note that virtually all GPS modules provide the MSL altitude in addition to the WGS84 altitude.
-					//Alt int32
-					//// GPS HDOP horizontal dilution of position (unitless). If unknown, set to: UINT16_MAX
-					//Eph uint16
-					//// GPS VDOP vertical dilution of position (unitless). If unknown, set to: UINT16_MAX
-					//Epv uint16
-					//// GPS ground speed. If unknown, set to: UINT16_MAX
-					//Vel uint16
-					//// Course over ground (NOT heading, but direction of movement) in degrees * 100, 0.0..359.99 degrees. If unknown, set to: UINT16_MAX
-					//Cog uint16
-					//// Number of satellites visible. If unknown, set to 255
-					//SatellitesVisible uint8
-					//// Altitude (above WGS84, EGM96 ellipsoid). Positive for up.
-					//AltEllipsoid int32 `mavext:"true"`
-					//// Position uncertainty.
-					//HAcc uint32 `mavext:"true"`
-					//// Altitude uncertainty.
-					//VAcc uint32 `mavext:"true"`
-					//// Speed uncertainty.
-					//VelAcc uint32 `mavext:"true"`
-					//// Heading / track uncertainty
-					//HdgAcc uint32 `mavext:"true"`
-					//// Yaw in earth frame from north. Use 0 if this GPS does not provide yaw. Use 65535 if this GPS is configured to provide yaw and is currently unable to provide it. Use 36000 for north.
-					//Yaw uint16 `mavext:"true"`
-
-				case *ardupilotmega.MessageRawImu: // Id 27
-					//// Timestamp (UNIX Epoch time or time since system boot). The receiving end can infer timestamp format (since 1.1.1970 or since system boot) by checking for the magnitude of the number.
-					//TimeUsec uint64
-					//// X acceleration (raw)
-					//Xacc int16
-					//// Y acceleration (raw)
-					//Yacc int16
-					//// Z acceleration (raw)
-					//Zacc int16
-					//// Angular speed around X axis (raw)
-					//Xgyro int16
-					//// Angular speed around Y axis (raw)
-					//Ygyro int16
-					//// Angular speed around Z axis (raw)
-					//Zgyro int16
-					//// X Magnetic field (raw)
-					//Xmag int16
-					//// Y Magnetic field (raw)
-					//Ymag int16
-					//// Z Magnetic field (raw)
-					//Zmag int16
-					//// Id. Ids are numbered from 0 and map to IMUs numbered from 1 (e.g. IMU1 will have a message with id=0)
-					//Id uint8 `mavext:"true"`
-					//// Temperature, 0: IMU does not provide temperature values. If the IMU is at 0C it must send 1 (0.01C).
-					//Temperature int16 `mavext:"true"`
-
-				case *ardupilotmega.MessageScaledPressure: // Id 29
-					//// Timestamp (time since system boot).
-					//TimeBootMs uint32
-					//// Absolute pressure
-					//PressAbs float32
-					//// Differential pressure 1
-					//PressDiff float32
-					//// Temperature
-					//Temperature int16
-
-				case *ardupilotmega.MessageAttitude: // Id 30
-					//// Timestamp (time since system boot).
-					//TimeBootMs uint32
-					//// Roll angle (-pi..+pi)
-					//Roll float32
-					//// Pitch angle (-pi..+pi)
-					//Pitch float32
-					//// Yaw angle (-pi..+pi)
-					//Yaw float32
-					//// Roll angular speed
-					//Rollspeed float32
-					//// Pitch angular speed
-					//Pitchspeed float32
-					//// Yaw angular speed
-					//Yawspeed float32
-
-				case *ardupilotmega.MessageGlobalPositionInt: // Id 33
-					//// Timestamp (time since system boot).
-					//TimeBootMs uint32
-					//// Latitude, expressed
-					//Lat int32
-					//// Longitude, expressed
-					//Lon int32
-					//// Altitude (MSL). Note that virtually all GPS modules provide both WGS84 and MSL.
-					//Alt int32
-					//// Altitude above ground
-					//RelativeAlt int32
-					//// Ground X Speed (Latitude, positive north)
-					//Vx int16
-					//// Ground Y Speed (Longitude, positive east)
-					//Vy int16
-					//// Ground Z Speed (Altitude, positive down)
-					//Vz int16
-					//// Vehicle heading (yaw angle), 0.0..359.99 degrees. If unknown, set to: UINT16_MAX
-					//Hdg uint16
-
-				case *ardupilotmega.MessageRcChannelsRaw: // Id 35
-					//// Timestamp (time since system boot).
-					//TimeBootMs uint32
-					//// Servo output port (set of 8 outputs = 1 port). Flight stacks running on Pixhawk should use: 0 = MAIN, 1 = AUX.
-					//Port uint8
-					//// RC channel 1 value.
-					//Chan1Raw uint16
-					//// RC channel 2 value.
-					//Chan2Raw uint16
-					//// RC channel 3 value.
-					//Chan3Raw uint16
-					//// RC channel 4 value.
-					//Chan4Raw uint16
-					//// RC channel 5 value.
-					//Chan5Raw uint16
-					//// RC channel 6 value.
-					//Chan6Raw uint16
-					//// RC channel 7 value.
-					//Chan7Raw uint16
-					//// RC channel 8 value.
-					//Chan8Raw uint16
-					//// Receive signal strength indicator in device-dependent units/scale. Values: [0-254], 255: invalid/unknown.
-					//Rssi uint8
-
-				case *ardupilotmega.MessageServoOutputRaw: // Id 36
-					//// Timestamp (UNIX Epoch time or time since system boot). The receiving end can infer timestamp format (since 1.1.1970 or since system boot) by checking for the magnitude of the number.
-					//TimeUsec uint32
-					//// Servo output port (set of 8 outputs = 1 port). Flight stacks running on Pixhawk should use: 0 = MAIN, 1 = AUX.
-					//Port uint8
-					//// Servo output 1 value
-					//Servo1Raw uint16
-					//// Servo output 2 value
-					//Servo2Raw uint16
-					//// Servo output 3 value
-					//Servo3Raw uint16
-					//// Servo output 4 value
-					//Servo4Raw uint16
-					//// Servo output 5 value
-					//Servo5Raw uint16
-					//// Servo output 6 value
-					//Servo6Raw uint16
-					//// Servo output 7 value
-					//Servo7Raw uint16
-					//// Servo output 8 value
-					//Servo8Raw uint16
-					//// Servo output 9 value
-					//Servo9Raw uint16 `mavext:"true"`
-					//// Servo output 10 value
-					//Servo10Raw uint16 `mavext:"true"`
-					//// Servo output 11 value
-					//Servo11Raw uint16 `mavext:"true"`
-					//// Servo output 12 value
-					//Servo12Raw uint16 `mavext:"true"`
-					//// Servo output 13 value
-					//Servo13Raw uint16 `mavext:"true"`
-					//// Servo output 14 value
-					//Servo14Raw uint16 `mavext:"true"`
-					//// Servo output 15 value
-					//Servo15Raw uint16 `mavext:"true"`
-					//// Servo output 16 value
-					//Servo16Raw uint16 `mavext:"true"`
-
 				case *ardupilotmega.MessageNavControllerOutput: // Id 62
+					fmt.Printf("Navigation state controller output message received from drone at: %s\n", time.Now().Format(time.RFC1123))
 					//// Current desired roll
 					//NavRoll float32
 					//// Current desired pitch
@@ -269,7 +199,14 @@ func main() {
 					//// Current crosstrack error on x-y plane
 					//XtrackError float32
 
+					fmt.Println()
+
 				case *ardupilotmega.MessageRcChannels: // Id 65
+					sinceBoot, err := time.ParseDuration(fmt.Sprintf("%dms", msg.TimeBootMs))
+					if err != nil {
+						panic(err)
+					}
+					fmt.Printf("RC channels message sent from drone at: %s after boot\n", sinceBoot)
 					//// Timestamp (time since system boot).
 					//TimeBootMs uint32
 					//// Total number of RC channels being received. This can be larger than 18, indicating that more channels are available but not given in this message. This value should be 0 when no RC channels are available.
@@ -313,7 +250,10 @@ func main() {
 					//// Receive signal strength indicator in device-dependent units/scale. Values: [0-254], 255: invalid/unknown.
 					//Rssi uint8
 
+					fmt.Println()
+
 				case *ardupilotmega.MessageVfrHud: // Id 74
+					fmt.Printf("HUD Metrics message received from drone at: %s\n", time.Now().Format(time.RFC1123))
 					//// Vehicle speed in form appropriate for vehicle type. For standard aircraft this is typically calibrated airspeed (CAS) or indicated airspeed (IAS) - either of which can be used by a pilot to estimate stall speed.
 					//Airspeed float32
 					//// Current ground speed.
@@ -327,7 +267,14 @@ func main() {
 					//// Current climb rate.
 					//Climb float32
 
+					fmt.Println()
+
 				case *ardupilotmega.MessageScaledImu2: // Id 116
+					sinceBoot, err := time.ParseDuration(fmt.Sprintf("%dms", msg.TimeBootMs))
+					if err != nil {
+						panic(err)
+					}
+					fmt.Printf("RAW IMU2 message sent from drone at: %s after boot\n", sinceBoot)
 					//// Timestamp (time since system boot).
 					//TimeBootMs uint32
 					//// X acceleration
@@ -351,7 +298,12 @@ func main() {
 					//// Temperature, 0: IMU does not provide temperature values. If the IMU is at 0C it must send 1 (0.01C).
 					//Temperature int16 `mavext:"true"`
 
+					fmt.Println()
+
 				case *ardupilotmega.MessageSensorOffsets: // Id 150
+					fmt.Printf("Hardware sensors offsets and calibrations values message recived from drone at: %s\n",
+						time.Now().Format(time.RFC1123))
+
 					//// Magnetometer X offset.
 					//MagOfsX int16
 					//// Magnetometer Y offset.
@@ -377,7 +329,11 @@ func main() {
 					//// Accel Z calibration.
 					//AccelCalZ float32
 
+					fmt.Println()
+
 				case *ardupilotmega.MessageAhrs: // Id 163
+					fmt.Printf("AHRS values message recived from drone at: %s\n", time.Now().Format(time.RFC1123))
+
 					// X gyro drift estimate.
 					//Omegaix float32 `mavname:"omegaIx"`
 					//// Y gyro drift estimate.
@@ -393,7 +349,10 @@ func main() {
 					//// Average error_yaw value.
 					//ErrorYaw float32
 
+					fmt.Println()
+
 				case *ardupilotmega.MessageAhrs2: // Id 178
+					fmt.Printf("AHRS2 values message recived from drone at: %s\n", time.Now().Format(time.RFC1123))
 					//// Roll angle.
 					//Roll float32
 					//// Pitch angle.
@@ -407,7 +366,10 @@ func main() {
 					//// Longitude.
 					//Lng int32
 
+					fmt.Println()
+
 				case *ardupilotmega.MessageAhrs3: // Id 182
+					fmt.Printf("AHRS3 values message recived from drone at: %s\n", time.Now().Format(time.RFC1123))
 					//// Roll angle.
 					//Roll float32
 					//// Pitch angle.
@@ -429,7 +391,10 @@ func main() {
 					//// Test variable4.
 					//V4 float32
 
+					fmt.Println()
+
 				case *ardupilotmega.MessageEkfStatusReport: // Id 193
+					fmt.Printf("EKF Status message recived from drone at: %s\n", time.Now().Format(time.RFC1123))
 					//// Flags.
 					//Flags EKF_STATUS_FLAGS `mavenum:"uint16"`
 					//// Velocity variance.
@@ -444,6 +409,8 @@ func main() {
 					//TerrainAltVariance float32
 					//// Airspeed variance.
 					//AirspeedVariance float32 `mavext:"true"`
+
+					fmt.Println()
 
 				case *ardupilotmega.MessagePowerStatus: // Id 125
 					fmt.Printf("Power status message from drone. 5V rail voltage: %.2fv, Servo rail voltage: %.2fv, flags: %b\n",
@@ -463,8 +430,7 @@ func main() {
 					fmt.Println()
 
 				case *ardupilotmega.MessageVibration: // Id 241
-					fmt.Println("Reply message from drone with vibration info")
-					fmt.Printf("Timestamp %v\n", time.Unix(int64(msg.TimeUsec), 0).Format(time.RFC1123))
+					fmt.Printf("Reply message from drone with vibration info at: %v\n", time.Unix(int64(msg.TimeUsec), 0).Format(time.RFC1123))
 					fmt.Printf("Axis vibration levels - x: %.2f y: %.2f z: %.2f\n",
 						msg.VibrationX, msg.VibrationY, msg.VibrationZ)
 					fmt.Printf("Accelerometer clipping counts - 1st: %d 2nd: %d 3rd %d\n",
