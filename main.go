@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"os"
 	"time"
 
 	"github.com/aler9/gomavlib"
@@ -10,8 +9,8 @@ import (
 )
 
 func main() {
-	// Proxy (or man-in-the-middle ;>) between my rpi connected to a Pixhawk, and QGroundControl running on my local
-	// desktop.  At the moment this simply captures the first few frames, prints their details, then exits.
+	// Proxy (or man-in-the-middle ;>) between my rpi3 connected to a Pixhawk, and QGroundControl running on my local
+	// desktop, and display the message details.
 	node, err := gomavlib.NewNode(gomavlib.NodeConf{
 		Endpoints: []gomavlib.EndpointConf{
 			gomavlib.EndpointUdpClient{":14550"},
@@ -26,7 +25,8 @@ func main() {
 	}
 	defer node.Close()
 
-	i := 0
+	fmt.Println("MAVLink decoder running...")
+
 	for evt := range node.Events() {
 		if _, ok := evt.(*gomavlib.EventChannelOpen); ok {
 			fmt.Printf("EventChannelOpen received\n\n")
@@ -155,6 +155,11 @@ func main() {
 				case *ardupilotmega.MessageMissionCurrent: // Id 42
 					fmt.Printf("Drone message status current mission is # %d\n", msg.Seq)
 
+				case *ardupilotmega.MessageMissionCount: // Id 44
+					fmt.Printf("Mission count message from drone at %v\n", time.Now().Format(time.RFC1123))
+					fmt.Printf("Target system: %d, component: %d, # missions: %d, mission type: %s\n",
+						msg.TargetSystem, msg.TargetComponent, msg.Count, msg.MissionType)
+
 				case *ardupilotmega.MessageNavControllerOutput: // Id 62
 					fmt.Printf("Navigation state controller output message received from drone at: %s\n",
 						time.Now().Format(time.RFC1123))
@@ -182,6 +187,17 @@ func main() {
 					fmt.Printf("RC Channel values - 17: %d, 18: %d\n", msg.Chan17Raw,
 						msg.Chan18Raw)
 
+				case *ardupilotmega.MessageMissionItemInt: // Id 73
+					fmt.Printf("Mission item message received from drone at: %s\n",
+						time.Now().Format(time.RFC1123))
+					fmt.Printf("Target; System: %d, component: %d\n", msg.TargetSystem, msg.TargetComponent)
+					fmt.Printf("Waypoint ID: %d, frame type: %d, sched action: %d, current? %d, autocont: %d\n",
+						msg.Seq, msg.Frame, msg.Command, msg.Current, msg.Autocontinue)
+					fmt.Printf("Command params: 1: %0.2f, 2: %0.2f, 3: %0.2f, 4: %0.2f\n", msg.Param1,
+						msg.Param2, msg.Param3, msg.Param4)
+					fmt.Printf("Command params: 5: %d, 6: %d, 7: %0.2f\n", msg.X, msg.Y, msg.Z)
+					fmt.Printf("Mission type: %d\n", msg.MissionType)
+
 				case *ardupilotmega.MessageVfrHud: // Id 74
 					fmt.Printf("HUD Metrics message received from drone at: %s\n",
 						time.Now().Format(time.RFC1123))
@@ -189,6 +205,11 @@ func main() {
 						msg.Airspeed, msg.Groundspeed, msg.Throttle)
 					fmt.Printf("Compass heading: %d, Alt: %0.2f, Climb rate: %0.2f\n", msg.Heading, msg.Alt,
 						msg.Climb)
+
+				case *ardupilotmega.MessageCommandAck: // Id 77
+					fmt.Printf("Command Ack message from drone at %v\n", time.Now().Format(time.RFC1123))
+					fmt.Printf("Command ID: %s, Result: %s, Progress: %d\n", msg.Command, msg.Result, msg.Progress)
+					fmt.Printf("Result Param2: %d, Target system: %d, component: %d\n", msg.ResultParam2, msg.TargetSystem, msg.TargetComponent)
 
 				case *ardupilotmega.MessageScaledImu2: // Id 116
 					sinceBoot, err := time.ParseDuration(fmt.Sprintf("%dms", msg.TimeBootMs))
@@ -201,6 +222,106 @@ func main() {
 					fmt.Printf("Magnetic field - x: %d, y: %d, z: %d\n", msg.Xmag, msg.Ymag, msg.Zmag)
 					fmt.Printf("Temp: %d\n", msg.Temperature)
 
+				case *ardupilotmega.MessagePowerStatus: // Id 125
+					fmt.Printf("Power status message from drone at %v\n", time.Now().Format(time.RFC1123))
+					fmt.Printf("5V rail voltage: %.2fv, Servo rail voltage: %.2fv, flags: %b\n",
+						float32(msg.Vcc)/1000.0, float32(msg.Vservo)/1000.0, msg.Flags)
+
+				case *ardupilotmega.MessageAutopilotVersion: // Id 148
+					fmt.Printf("Autopilot version message from drone at %v\n", time.Now().Format(time.RFC1123))
+					fmt.Println("Capabilities:")
+					if msg.Capabilities&ardupilotmega.MAV_PROTOCOL_CAPABILITY_MISSION_FLOAT != 0 {
+						fmt.Println("  * MAV_PROTOCOL_CAPABILITY_MISSION_FLOAT: Set")
+					} else {
+						fmt.Println("  * MAV_PROTOCOL_CAPABILITY_MISSION_FLOAT: Unset")
+					}
+					if msg.Capabilities&ardupilotmega.MAV_PROTOCOL_CAPABILITY_PARAM_FLOAT != 0 {
+						fmt.Println("  * MAV_PROTOCOL_CAPABILITY_PARAM_FLOAT: Set")
+					} else {
+						fmt.Println("  * MAV_PROTOCOL_CAPABILITY_PARAM_FLOAT: Unset")
+					}
+					if msg.Capabilities&ardupilotmega.MAV_PROTOCOL_CAPABILITY_MISSION_INT != 0 {
+						fmt.Println("  * MAV_PROTOCOL_CAPABILITY_MISSION_INT: Set")
+					} else {
+						fmt.Println("  * MAV_PROTOCOL_CAPABILITY_MISSION_INT: Unset")
+					}
+					if msg.Capabilities&ardupilotmega.MAV_PROTOCOL_CAPABILITY_COMMAND_INT != 0 {
+						fmt.Println("  * MAV_PROTOCOL_CAPABILITY_COMMAND_INT: Set")
+					} else {
+						fmt.Println("  * MAV_PROTOCOL_CAPABILITY_COMMAND_INT: Unset")
+					}
+					if msg.Capabilities&ardupilotmega.MAV_PROTOCOL_CAPABILITY_PARAM_UNION != 0 {
+						fmt.Println("  * MAV_PROTOCOL_CAPABILITY_PARAM_UNION: Set")
+					} else {
+						fmt.Println("  * MAV_PROTOCOL_CAPABILITY_PARAM_UNION: Unset")
+					}
+					if msg.Capabilities&ardupilotmega.MAV_PROTOCOL_CAPABILITY_FTP != 0 {
+						fmt.Println("  * MAV_PROTOCOL_CAPABILITY_FTP: Set")
+					} else {
+						fmt.Println("  * MAV_PROTOCOL_CAPABILITY_FTP: Unset")
+					}
+					if msg.Capabilities&ardupilotmega.MAV_PROTOCOL_CAPABILITY_SET_ATTITUDE_TARGET != 0 {
+						fmt.Println("  * MAV_PROTOCOL_CAPABILITY_SET_ATTITUDE_TARGET: Set")
+					} else {
+						fmt.Println("  * MAV_PROTOCOL_CAPABILITY_SET_ATTITUDE_TARGET: Unset")
+					}
+					if msg.Capabilities&ardupilotmega.MAV_PROTOCOL_CAPABILITY_SET_POSITION_TARGET_LOCAL_NED != 0 {
+						fmt.Println("  * MAV_PROTOCOL_CAPABILITY_SET_POSITION_TARGET_LOCAL_NED: Set")
+					} else {
+						fmt.Println("  * MAV_PROTOCOL_CAPABILITY_SET_POSITION_TARGET_LOCAL_NED: Unset")
+					}
+					if msg.Capabilities&ardupilotmega.MAV_PROTOCOL_CAPABILITY_SET_POSITION_TARGET_GLOBAL_INT != 0 {
+						fmt.Println("  * MAV_PROTOCOL_CAPABILITY_SET_POSITION_TARGET_GLOBAL_INT: Set")
+					} else {
+						fmt.Println("  * MAV_PROTOCOL_CAPABILITY_SET_POSITION_TARGET_GLOBAL_INT: Unset")
+					}
+					if msg.Capabilities&ardupilotmega.MAV_PROTOCOL_CAPABILITY_TERRAIN != 0 {
+						fmt.Println("  * MAV_PROTOCOL_CAPABILITY_TERRAIN: Set")
+					} else {
+						fmt.Println("  * MAV_PROTOCOL_CAPABILITY_TERRAIN: Unset")
+					}
+					if msg.Capabilities&ardupilotmega.MAV_PROTOCOL_CAPABILITY_SET_ACTUATOR_TARGET != 0 {
+						fmt.Println("  * MAV_PROTOCOL_CAPABILITY_SET_ACTUATOR_TARGET: Set")
+					} else {
+						fmt.Println("  * MAV_PROTOCOL_CAPABILITY_SET_ACTUATOR_TARGET: Unset")
+					}
+					if msg.Capabilities&ardupilotmega.MAV_PROTOCOL_CAPABILITY_FLIGHT_TERMINATION != 0 {
+						fmt.Println("  * MAV_PROTOCOL_CAPABILITY_FLIGHT_TERMINATION: Set")
+					} else {
+						fmt.Println("  * MAV_PROTOCOL_CAPABILITY_FLIGHT_TERMINATION: Unset")
+					}
+					if msg.Capabilities&ardupilotmega.MAV_PROTOCOL_CAPABILITY_COMPASS_CALIBRATION != 0 {
+						fmt.Println("  * MAV_PROTOCOL_CAPABILITY_COMPASS_CALIBRATION: Set")
+					} else {
+						fmt.Println("  * MAV_PROTOCOL_CAPABILITY_COMPASS_CALIBRATION: Unset")
+					}
+					if msg.Capabilities&ardupilotmega.MAV_PROTOCOL_CAPABILITY_MAVLINK2 != 0 {
+						fmt.Println("  * MAV_PROTOCOL_CAPABILITY_MAVLINK2: Set")
+					} else {
+						fmt.Println("  * MAV_PROTOCOL_CAPABILITY_MAVLINK2: Unset")
+					}
+					if msg.Capabilities&ardupilotmega.MAV_PROTOCOL_CAPABILITY_MISSION_FENCE != 0 {
+						fmt.Println("  * MAV_PROTOCOL_CAPABILITY_MISSION_FENCE: Set")
+					} else {
+						fmt.Println("  * MAV_PROTOCOL_CAPABILITY_MISSION_FENCE: Unset")
+					}
+					if msg.Capabilities&ardupilotmega.MAV_PROTOCOL_CAPABILITY_MISSION_RALLY != 0 {
+						fmt.Println("  * MAV_PROTOCOL_CAPABILITY_MISSION_RALLY: Set")
+					} else {
+						fmt.Println("  * MAV_PROTOCOL_CAPABILITY_MISSION_RALLY: Unset")
+					}
+					if msg.Capabilities&ardupilotmega.MAV_PROTOCOL_CAPABILITY_FLIGHT_INFORMATION != 0 {
+						fmt.Println("  * MAV_PROTOCOL_CAPABILITY_FLIGHT_INFORMATION: Set")
+					} else {
+						fmt.Println("  * MAV_PROTOCOL_CAPABILITY_FLIGHT_INFORMATION: Unset")
+					}
+					fmt.Printf("Firmware ver: %d, middleware ver: %d, OS ver: %d\n", msg.FlightSwVersion,
+						msg.MiddlewareSwVersion, msg.OsSwVersion)
+					fmt.Printf("HW/board ver: %d, Flight cust ver: %s, Middleware cust: %s, OS cust ver: %s\n",
+						msg.BoardVersion, msg.FlightCustomVersion, msg.MiddlewareCustomVersion, msg.OsCustomVersion)
+					fmt.Printf("Board vend ID: %d, Prod ID: %d, UID: %d, UID2: %s\n", msg.VendorId,
+						msg.ProductId, msg.Uid, msg.Uid2)
+
 				case *ardupilotmega.MessageSensorOffsets: // Id 150
 					fmt.Printf("Hardware sensor offset and calibration values message received from drone at: %s\n",
 						time.Now().Format(time.RFC1123))
@@ -212,6 +333,10 @@ func main() {
 					fmt.Printf("Accel calibration - x: %0.2f, y: %0.2f, z: %0.2f\n", msg.AccelCalX,
 						msg.AccelCalY, msg.AccelCalZ)
 
+				case *ardupilotmega.MessageMeminfo: // Id 152
+					fmt.Printf("Memory info message from drone. Heap top: %d, free mem: %d, free mem32: %d\n",
+						msg.Brkval, msg.Freemem, msg.Freemem32) // TODO: Find out the units of measurement for these values
+
 				case *ardupilotmega.MessageAhrs: // Id 163
 					fmt.Printf("AHRS values message received from drone at: %s\n",
 						time.Now().Format(time.RFC1123))
@@ -219,6 +344,10 @@ func main() {
 						msg.Omegaiz)
 					fmt.Printf("Avg - accel-wgt: %0.2f, renorm: %0.2f, err-roll-pitch: %0.2f, err-yaw %0.2f\n",
 						msg.AccelWeight, msg.RenormVal, msg.ErrorRp, msg.ErrorYaw)
+
+				case *ardupilotmega.MessageHwstatus: // Id 165
+					fmt.Printf("Hardware status message from drone.  Board voltage: %.2fv, I2C err count: %d\n",
+						float32(msg.Vcc)/1000.0, msg.I2cerr)
 
 				case *ardupilotmega.MessageAhrs2: // Id 178
 					fmt.Printf("AHRS2 values message received from drone at: %s\n",
@@ -296,36 +425,26 @@ func main() {
 					fmt.Printf("Variances - Compass: %0.2f, Terrain: %0.2f, Airspeed: %0.2f\n",
 						msg.CompassVariance, msg.TerrainAltVariance, msg.AirspeedVariance)
 
-				case *ardupilotmega.MessagePowerStatus: // Id 125
-					fmt.Printf("Power status message from drone. 5V rail voltage: %.2fv, Servo rail voltage: %.2fv, flags: %b\n",
-						float32(msg.Vcc)/1000.0, float32(msg.Vservo)/1000.0, msg.Flags)
-
-				case *ardupilotmega.MessageMeminfo: // Id 152
-					fmt.Printf("Memory info message from drone. Heap top: %d, free mem: %d, free mem32: %d\n",
-						msg.Brkval, msg.Freemem, msg.Freemem32) // TODO: Find out the units of measurement for these values
-
-				case *ardupilotmega.MessageHwstatus: // Id 165
-					fmt.Printf("Hardware status message from drone.  Board voltage: %.2fv, I2C err count: %d\n",
-						float32(msg.Vcc)/1000.0, msg.I2cerr)
-
 				case *ardupilotmega.MessageVibration: // Id 241
-					fmt.Printf("Reply message from drone with vibration info at: %v\n", time.Unix(int64(msg.TimeUsec), 0).Format(time.RFC1123))
+					fmt.Printf("Vibration info message from drone at: %v\n",
+						time.Unix(int64(msg.TimeUsec), 0).Format(time.RFC1123))
 					fmt.Printf("Axis vibration levels - x: %.2f y: %.2f z: %.2f\n",
 						msg.VibrationX, msg.VibrationY, msg.VibrationZ)
 					fmt.Printf("Accelerometer clipping counts - 1st: %d 2nd: %d 3rd %d\n",
 						msg.Clipping_0, msg.Clipping_1, msg.Clipping_2)
 
+				case *ardupilotmega.MessageStatustext: // Id 253
+					fmt.Printf("Text status message from drone at: %v\n", time.Now().Format(time.RFC1123))
+					fmt.Printf("Severity: %s, ID: %d, ChunkSeq: %d\n", msg.Severity, msg.Id, msg.ChunkSeq)
+					fmt.Printf("Text: %s\n", msg.Text)
+
 				default:
-					fmt.Printf("Drone message frame received at: %v\n", time.Now().Format(time.RFC1123))
-
+					fmt.Printf("Undecoded message frame received from drone at: %v\n", time.Now().Format(time.RFC1123))
 					fmt.Printf("MAVLink version: %d\n", frm.Frame.GetVersion())
-
 					fmt.Printf("System ID: %v\n", frm.SystemId())
 					fmt.Printf("Component ID: %v\n", frm.ComponentId())
 					fmt.Printf("Message ID: %d\n", frm.Message().GetId())
-
 					fmt.Printf("Message: %+v\n", frm.Message())
-
 					fmt.Printf("Checksum: %v\n", frm.Frame.GetChecksum())
 				}
 
@@ -341,6 +460,49 @@ func main() {
 					fmt.Println("System time message received from GCS")
 					fmt.Printf("Epoch time (%v), time since boot (%d milliseconds)\n",
 						time.Unix(int64(msg.TimeUnixUsec/1000000), int64(msg.TimeUnixUsec%1000000)).Format(time.RFC1123), msg.TimeBootMs)
+
+				case *ardupilotmega.MessageSetMode: // Id 11
+					fmt.Printf("Set system mode message from GCS at %v\n", time.Now().Format(time.RFC1123))
+					fmt.Printf("Target system: %d", msg.TargetSystem)
+					fmt.Printf(", Base mode: ")
+					switch msg.BaseMode {
+					case ardupilotmega.MAV_MODE_PREFLIGHT:
+						// System is not ready to fly, booting, calibrating, etc. No flag is set.
+						fmt.Printf("Preflight")
+					case ardupilotmega.MAV_MODE_STABILIZE_DISARMED:
+						// System is allowed to be active, under assisted RC control.
+						fmt.Printf("Disarmed")
+					case ardupilotmega.MAV_MODE_STABILIZE_ARMED:
+						// System is allowed to be active, under assisted RC control.
+						fmt.Printf("Armed")
+					case ardupilotmega.MAV_MODE_MANUAL_DISARMED:
+						// System is allowed to be active, under manual (RC) control, no stabilization
+						fmt.Printf("Manual disarmed")
+					case ardupilotmega.MAV_MODE_MANUAL_ARMED:
+						// System is allowed to be active, under manual (RC) control, no stabilization
+						fmt.Printf("Manual armed")
+					case ardupilotmega.MAV_MODE_GUIDED_DISARMED:
+						// System is allowed to be active, under autonomous control, manual setpoint
+						fmt.Printf("Guided disarmed")
+					case ardupilotmega.MAV_MODE_GUIDED_ARMED:
+						// System is allowed to be active, under autonomous control, manual setpoint
+						fmt.Printf("Guided armed")
+					case ardupilotmega.MAV_MODE_AUTO_DISARMED:
+						// System is allowed to be active, under autonomous control and navigation (the trajectory is decided onboard and not pre-programmed by waypoints)
+						fmt.Printf("Auto disarmed")
+					case ardupilotmega.MAV_MODE_AUTO_ARMED:
+						// System is allowed to be active, under autonomous control and navigation (the trajectory is decided onboard and not pre-programmed by waypoints)
+						fmt.Printf("Auto armed")
+					case ardupilotmega.MAV_MODE_TEST_DISARMED:
+						// UNDEFINED mode. This solely depends on the autopilot - use with caution, intended for developers only.
+						fmt.Printf("Test disarmed")
+					case ardupilotmega.MAV_MODE_TEST_ARMED:
+						// UNDEFINED mode. This solely depends on the autopilot - use with caution, intended for developers only.
+						fmt.Printf("Test armed")
+					default:
+						fmt.Printf("Unknown")
+					}
+					fmt.Printf(", Custom mode: %d\n", msg.CustomMode)
 
 				case *ardupilotmega.MessageParamRequestRead: // Id 20
 					if msg.ParamId == "" {
@@ -381,23 +543,13 @@ func main() {
 						msg.Command, msg.TargetSystem, msg.TargetComponent)
 
 				default:
-					fmt.Printf("GCS message frame received at: %v\n", time.Now().Format(time.RFC1123))
-
+					fmt.Printf("Undecoded message frame received from GCS at: %v\n", time.Now().Format(time.RFC1123))
 					fmt.Printf("MAVLink version: %d\n", frm.Frame.GetVersion())
-
 					fmt.Printf("System ID: %v\n", frm.SystemId())
 					fmt.Printf("Component ID: %v\n", frm.ComponentId())
 					fmt.Printf("Message ID: %d\n", frm.Message().GetId())
-
 					fmt.Printf("Message: %+v\n", frm.Message())
-
 					fmt.Printf("Checksum: %v\n", frm.Frame.GetChecksum())
-				}
-
-				// Process a limited amount of event frames from the GCS, then exit
-				i++
-				if i >= 100 {
-					os.Exit(0)
 				}
 			}
 			fmt.Println()
