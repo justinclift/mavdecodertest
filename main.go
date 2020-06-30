@@ -14,7 +14,7 @@ func main() {
 	node, err := gomavlib.NewNode(gomavlib.NodeConf{
 		Endpoints: []gomavlib.EndpointConf{
 			gomavlib.EndpointUdpServer{"127.0.0.1:14551"},
-			gomavlib.EndpointUdpClient{"10.1.1.165:14550"},
+			gomavlib.EndpointUdpServer{"10.1.1.29:14552"},
 		},
 		Dialect:     ardupilotmega.Dialect,
 		OutVersion:  gomavlib.V2, // change to V1 if you're unable to write to the target
