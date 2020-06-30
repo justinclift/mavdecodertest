@@ -13,7 +13,7 @@ func main() {
 	// desktop, and display the message details.
 	node, err := gomavlib.NewNode(gomavlib.NodeConf{
 		Endpoints: []gomavlib.EndpointConf{
-			gomavlib.EndpointUdpClient{":14550"},
+			gomavlib.EndpointUdpServer{"127.0.0.1:14551"},
 			gomavlib.EndpointUdpClient{"10.1.1.165:14550"},
 		},
 		Dialect:     ardupilotmega.Dialect,
@@ -112,6 +112,15 @@ func main() {
 					fmt.Printf("Angular speed - Roll: %0.2f, Pitch: %0.2f, Yaw: %0.2f\n", msg.Rollspeed,
 						msg.Pitchspeed, msg.Yawspeed)
 
+				case *ardupilotmega.MessageLocalPositionNed: // Id 32
+					sinceBoot, err := time.ParseDuration(fmt.Sprintf("%dms", msg.TimeBootMs))
+					if err != nil {
+						panic(err)
+					}
+					fmt.Printf("Filtered local position message sent from drone at: %s after boot\n", sinceBoot)
+					fmt.Printf("Postion; x: %0.2f, y: %0.2f, z: %0.2f\n", msg.X, msg.Y, msg.Z)
+					fmt.Printf("Speed; x: %0.2f, y: %0.2f, z: %0.2f\n", msg.Vx, msg.Vy, msg.Vz)
+
 				case *ardupilotmega.MessageGlobalPositionInt: // Id 33
 					sinceBoot, err := time.ParseDuration(fmt.Sprintf("%dms", msg.TimeBootMs))
 					if err != nil {
@@ -172,6 +181,35 @@ func main() {
 					fmt.Printf("Target system: %d, component: %d, # missions: %d, mission type: %s\n",
 						msg.TargetSystem, msg.TargetComponent, msg.Count, msg.MissionType)
 
+				case *ardupilotmega.MessageMissionAck: // Id 47
+					fmt.Printf("Mission ack message from drone at %v\n", time.Now().Format(time.RFC1123))
+					fmt.Printf("Target system: %d, component: %d\n", msg.TargetSystem, msg.TargetComponent)
+					//// System ID
+					//TargetSystem uint8
+					//// Component ID
+					//TargetComponent uint8
+
+					fmt.Printf("Mission result: %s, mission type: %s\n", msg.Type, msg.MissionType)
+					//// Mission result.
+					//Type MAV_MISSION_RESULT `mavenum:"uint8"`
+					//// Mission type.
+					//MissionType MAV_MISSION_TYPE `mavenum:"uint8" mavext:"true"`
+
+				case *ardupilotmega.MessageGpsGlobalOrigin: // Id 49
+					sinceBoot, err := time.ParseDuration(fmt.Sprintf("%dus", msg.TimeUsec))
+					if err != nil {
+						panic(err)
+					}
+					fmt.Printf("GPS origin coordinates message sent from drone at: %v\n", sinceBoot)
+					//// Latitude (WGS84)
+					//Latitude int32
+					//// Longitude (WGS84)
+					//Longitude int32
+					//// Altitude (MSL). Positive for up.
+					//Altitude int32
+					//// Timestamp (UNIX Epoch time or time since system boot). The receiving end can infer timestamp format (since 1.1.1970 or since system boot) by checking for the magnitude of the number.
+					//TimeUsec uint64 `mavext:"true"`
+
 				case *ardupilotmega.MessageNavControllerOutput: // Id 62
 					fmt.Printf("Navigation state controller output message received from drone at: %s\n",
 						time.Now().Format(time.RFC1123))
@@ -223,6 +261,56 @@ func main() {
 					fmt.Printf("Command ID: %s, Result: %s, Progress: %d\n", msg.Command, msg.Result, msg.Progress)
 					fmt.Printf("Result Param2: %d, Target system: %d, component: %d\n", msg.ResultParam2, msg.TargetSystem, msg.TargetComponent)
 
+				case *ardupilotmega.MessagePositionTargetGlobalInt: // Id 87
+					sinceBoot, err := time.ParseDuration(fmt.Sprintf("%dms", msg.TimeBootMs))
+					if err != nil {
+						panic(err)
+					}
+					fmt.Printf("Current vehicle position message sent from drone at: %s after boot\n", sinceBoot)
+					//// Timestamp (time since system boot). The rationale for the timestamp in the setpoint is to allow the system to compensate for the transport delay of the setpoint. This allows the system to compensate processing latency.
+					//TimeBootMs uint32
+					//// Valid options are: MAV_FRAME_GLOBAL_INT = 5, MAV_FRAME_GLOBAL_RELATIVE_ALT_INT = 6, MAV_FRAME_GLOBAL_TERRAIN_ALT_INT = 11
+					//CoordinateFrame MAV_FRAME `mavenum:"uint8"`
+					//// Bitmap to indicate which dimensions should be ignored by the vehicle.
+					//TypeMask POSITION_TARGET_TYPEMASK `mavenum:"uint16"`
+					//// X Position in WGS84 frame
+					//LatInt int32
+					//// Y Position in WGS84 frame
+					//LonInt int32
+					//// Altitude (MSL, AGL or relative to home altitude, depending on frame)
+					//Alt float32
+					//// X velocity in NED frame
+					//Vx float32
+					//// Y velocity in NED frame
+					//Vy float32
+					//// Z velocity in NED frame
+					//Vz float32
+					//// X acceleration or force (if bit 10 of type_mask is set) in NED frame in meter / s^2 or N
+					//Afx float32
+					//// Y acceleration or force (if bit 10 of type_mask is set) in NED frame in meter / s^2 or N
+					//Afy float32
+					//// Z acceleration or force (if bit 10 of type_mask is set) in NED frame in meter / s^2 or N
+					//Afz float32
+					//// yaw setpoint
+					//Yaw float32
+					//// yaw rate setpoint
+					//YawRate float32
+
+				case *ardupilotmega.MessageFileTransferProtocol: // Id 110
+					fmt.Printf("File transfer protocol message from drone at %v\n", time.Now().Format(time.RFC1123))
+					//// Network ID (0 for broadcast)
+					//TargetNetwork uint8
+					//// System ID (0 for broadcast)
+					//TargetSystem uint8
+					//// Component ID (0 for broadcast)
+					//TargetComponent uint8
+					//// Variable length payload. The length is defined by the remaining message length when subtracting the header and other fields.  The entire content of this block is opaque unless you understand any the encoding message_type.  The particular encoding used can be extension specific and might not always be documented as part of the mavlink specification.
+					//Payload [251]uint8
+
+				case *ardupilotmega.MessageTimesync: // Id 111
+					fmt.Printf("Time sync message from drone at %v\n", time.Now().Format(time.RFC1123))
+					fmt.Printf("Timestamp1: %d, timestamp 2: %d\n", msg.Tc1, msg.Ts1)
+
 				case *ardupilotmega.MessageScaledImu2: // Id 116
 					sinceBoot, err := time.ParseDuration(fmt.Sprintf("%dms", msg.TimeBootMs))
 					if err != nil {
@@ -238,6 +326,93 @@ func main() {
 					fmt.Printf("Power status message from drone at %v\n", time.Now().Format(time.RFC1123))
 					fmt.Printf("5V rail voltage: %.2fv, Servo rail voltage: %.2fv, flags: %b\n",
 						float32(msg.Vcc)/1000.0, float32(msg.Vservo)/1000.0, msg.Flags)
+
+				case *ardupilotmega.MessageScaledImu3: // Id 129
+					sinceBoot, err := time.ParseDuration(fmt.Sprintf("%dms", msg.TimeBootMs))
+					if err != nil {
+						panic(err)
+					}
+					fmt.Printf("RAW IMU3 message sent from drone at: %s after boot\n", sinceBoot)
+					fmt.Printf("Accel - x: %d, y: %d, z: %d\n", msg.Xacc, msg.Yacc, msg.Zacc)
+					fmt.Printf("Angular speed around - x: %d, y: %d, z: %d\n", msg.Xgyro, msg.Ygyro, msg.Zgyro)
+					fmt.Printf("Magnetic field - x: %d, y: %d, z: %d\n", msg.Xmag, msg.Ymag, msg.Zmag)
+					fmt.Printf("Temp: %d\n", msg.Temperature)
+					//// Timestamp (time since system boot).
+					//TimeBootMs uint32
+					//// X acceleration
+					//Xacc int16
+					//// Y acceleration
+					//Yacc int16
+					//// Z acceleration
+					//Zacc int16
+					//// Angular speed around X axis
+					//Xgyro int16
+					//// Angular speed around Y axis
+					//Ygyro int16
+					//// Angular speed around Z axis
+					//Zgyro int16
+					//// X Magnetic field
+					//Xmag int16
+					//// Y Magnetic field
+					//Ymag int16
+					//// Z Magnetic field
+					//Zmag int16
+					//// Temperature, 0: IMU does not provide temperature values. If the IMU is at 0C it must send 1 (0.01C).
+					//Temperature int16 `mavext:"true"`
+
+				case *ardupilotmega.MessageTerrainRequest: // Id 133
+					fmt.Printf("Terrain request message from drone at %v\n", time.Now().Format(time.RFC1123))
+					//// Latitude of SW corner of first grid
+					//Lat int32
+					//// Longitude of SW corner of first grid
+					//Lon int32
+					//// Grid spacing
+					//GridSpacing uint16
+					//// Bitmask of requested 4x4 grids (row major 8x7 array of grids, 56 bits)
+					//Mask uint64
+
+				case *ardupilotmega.MessageTerrainReport: // Id 136
+					fmt.Printf("Terrain report message from drone at %v\n", time.Now().Format(time.RFC1123))
+					//// Latitude
+					//Lat int32
+					//// Longitude
+					//Lon int32
+					//// grid spacing (zero if terrain at this location unavailable)
+					//Spacing uint16
+					//// Terrain height MSL
+					//TerrainHeight float32
+					//// Current vehicle height above lat/lon terrain height
+					//CurrentHeight float32
+					//// Number of 4x4 terrain blocks waiting to be received or read from disk
+					//Pending uint16
+					//// Number of 4x4 terrain blocks in memory
+					//Loaded uint16
+
+				case *ardupilotmega.MessageBatteryStatus: // Id 147
+					fmt.Printf("Battery status message from drone at %v\n", time.Now().Format(time.RFC1123))
+					// FIXME
+					//// Battery ID
+					//Id uint8
+					//// Function of the battery
+					//BatteryFunction MAV_BATTERY_FUNCTION `mavenum:"uint8"`
+					//// Type (chemistry) of the battery
+					//Type MAV_BATTERY_TYPE `mavenum:"uint8"`
+					//// Temperature of the battery. INT16_MAX for unknown temperature.
+					//Temperature int16
+					//// Battery voltage of cells. Cells above the valid cell count for this battery should have the UINT16_MAX value. If individual cell voltages are unknown or not measured for this battery, then the overall battery voltage should be filled in cell 0, with all others set to UINT16_MAX. If the voltage of the battery is greater than (UINT16_MAX - 1), then cell 0 should be set to (UINT16_MAX - 1), and cell 1 to the remaining voltage. This can be extended to multiple cells if the total voltage is greater than 2 * (UINT16_MAX - 1).
+					//Voltages [10]uint16
+					//// Battery current, -1: autopilot does not measure the current
+					//CurrentBattery int16
+					//// Consumed charge, -1: autopilot does not provide consumption estimate
+					//CurrentConsumed int32
+					//// Consumed energy, -1: autopilot does not provide energy consumption estimate
+					//EnergyConsumed int32
+					//// Remaining battery energy. Values: [0-100], -1: autopilot does not estimate the remaining battery.
+					//BatteryRemaining int8
+					//// Remaining battery time, 0: autopilot does not provide remaining battery time estimate
+					//TimeRemaining int32 `mavext:"true"`
+					//// State for extent of discharge, provided by autopilot for warning or external reactions
+					//ChargeState MAV_BATTERY_CHARGE_STATE `mavenum:"uint8" mavext:"true"`
 
 				case *ardupilotmega.MessageAutopilotVersion: // Id 148
 					fmt.Printf("Autopilot version message from drone at %v\n", time.Now().Format(time.RFC1123))
@@ -357,15 +532,86 @@ func main() {
 					fmt.Printf("Avg - accel-wgt: %0.2f, renorm: %0.2f, err-roll-pitch: %0.2f, err-yaw %0.2f\n",
 						msg.AccelWeight, msg.RenormVal, msg.ErrorRp, msg.ErrorYaw)
 
+				case *ardupilotmega.MessageSimstate: // Id 164
+					fmt.Printf("Simulation state message received from drone at: %s\n",
+						time.Now().Format(time.RFC1123))
+					fmt.Printf("Angle; roll: %0.2f, pitch: %0.2f, yaw: %0.2f\n", msg.Roll, msg.Pitch, msg.Yaw)
+					//// Roll angle.
+					//Roll float32
+					//// Pitch angle.
+					//Pitch float32
+					//// Yaw angle.
+					//Yaw float32
+
+					fmt.Printf("Accel; x: %0.2f, y: %0.2f, z: %0.2f\n", msg.Xacc, msg.Yacc, msg.Zacc)
+					//// X acceleration.
+					//Xacc float32
+					//// Y acceleration.
+					//Yacc float32
+					//// Z acceleration.
+					//Zacc float32
+
+					fmt.Printf("Angular spd around axis; x: %0.2f, y: %0.2f, z: %0.2f\n", msg.Xgyro, msg.Ygyro,
+						msg.Zgyro)
+					//// Angular speed around X axis.
+					//Xgyro float32
+					//// Angular speed around Y axis.
+					//Ygyro float32
+					//// Angular speed around Z axis.
+					//Zgyro float32
+
+					fmt.Printf("Lat: %d, lon: %d\n", msg.Lat, msg.Lng)
+					//// Latitude.
+					//Lat int32
+					//// Longitude.
+					//Lng int32
+
 				case *ardupilotmega.MessageHwstatus: // Id 165
-					fmt.Printf("Hardware status message from drone.  Board voltage: %.2fv, I2C err count: %d\n",
-						float32(msg.Vcc)/1000.0, msg.I2cerr)
+					fmt.Printf("Hardware status message from drone at %v\n", time.Now().Format(time.RFC1123))
+					fmt.Printf("Board voltage: %.2fv, I2C err count: %d\n", float32(msg.Vcc)/1000.0, msg.I2cerr)
 
 				case *ardupilotmega.MessageAhrs2: // Id 178
 					fmt.Printf("AHRS2 values message received from drone at: %s\n",
 						time.Now().Format(time.RFC1123))
 					fmt.Printf("Angles - Roll: %0.2f, Pitch: %0.2f, Yaw: %0.2f\n", msg.Roll, msg.Pitch, msg.Yaw)
 					fmt.Printf("Alt: %0.2f, Lat: %d, Lon: %d\n", msg.Altitude, msg.Lat, msg.Lng)
+
+				case *ardupilotmega.MessageCameraFeedback: // Id 180
+					sinceBoot, err := time.ParseDuration(fmt.Sprintf("%dus", msg.TimeUsec))
+					if err != nil {
+						panic(err)
+					}
+					fmt.Printf("Camera status message sent from drone at: %v since boot\n", sinceBoot)
+					//// Image timestamp (since UNIX epoch), as passed in by CAMERA_STATUS message (or autopilot if no CCB).
+					//TimeUsec uint64
+					//// System ID.
+					//TargetSystem uint8
+					//// Camera ID.
+					//CamIdx uint8
+					//// Image index.
+					//ImgIdx uint16
+					//// Latitude.
+					//Lat int32
+					//// Longitude.
+					//Lng int32
+					//// Altitude (MSL).
+					//AltMsl float32
+					//// Altitude (Relative to HOME location).
+					//AltRel float32
+					//// Camera Roll angle (earth frame, +-180).
+					//Roll float32
+					//// Camera Pitch angle (earth frame, +-180).
+					//Pitch float32
+					//// Camera Yaw (earth frame, 0-360, true).
+					//Yaw float32
+					//// Focal Length.
+					//FocLen float32
+
+					fmt.Printf("Feedback flag: %s, completed captures: %d\n", msg.Flags, msg.CompletedCaptures)
+					//// Feedback flags.
+					//Flags CAMERA_FEEDBACK_FLAGS `mavenum:"uint8"`
+					//// Completed image captures.
+					//CompletedCaptures uint16 `mavext:"true"`
 
 				case *ardupilotmega.MessageAhrs3: // Id 182
 					fmt.Printf("AHRS3 values message received from drone at: %s\n", time.Now().Format(time.RFC1123))
@@ -444,6 +690,35 @@ func main() {
 						msg.VibrationX, msg.VibrationY, msg.VibrationZ)
 					fmt.Printf("Accelerometer clipping counts - 1st: %d 2nd: %d 3rd %d\n",
 						msg.Clipping_0, msg.Clipping_1, msg.Clipping_2)
+
+				case *ardupilotmega.MessageHomePosition: // Id 242
+					sinceBoot, err := time.ParseDuration(fmt.Sprintf("%dus", msg.TimeUsec))
+					if err != nil {
+						panic(err)
+					}
+					fmt.Printf("Home position message sent from drone at: %v since boot\n", sinceBoot)
+					//// Latitude (WGS84)
+					//Latitude int32
+					//// Longitude (WGS84)
+					//Longitude int32
+					//// Altitude (MSL). Positive for up.
+					//Altitude int32
+					//// Local X position of this position in the local coordinate frame
+					//X float32
+					//// Local Y position of this position in the local coordinate frame
+					//Y float32
+					//// Local Z position of this position in the local coordinate frame
+					//Z float32
+					//// World to surface normal and heading transformation of the takeoff position. Used to indicate the heading and slope of the ground
+					//Q [4]float32
+					//// Local X position of the end of the approach vector. Multicopters should set this position based on their takeoff path. Grass-landing fixed wing aircraft should set it the same way as multicopters. Runway-landing fixed wing aircraft should set it to the opposite direction of the takeoff, assuming the takeoff happened from the threshold / touchdown zone.
+					//ApproachX float32
+					//// Local Y position of the end of the approach vector. Multicopters should set this position based on their takeoff path. Grass-landing fixed wing aircraft should set it the same way as multicopters. Runway-landing fixed wing aircraft should set it to the opposite direction of the takeoff, assuming the takeoff happened from the threshold / touchdown zone.
+					//ApproachY float32
+					//// Local Z position of the end of the approach vector. Multicopters should set this position based on their takeoff path. Grass-landing fixed wing aircraft should set it the same way as multicopters. Runway-landing fixed wing aircraft should set it to the opposite direction of the takeoff, assuming the takeoff happened from the threshold / touchdown zone.
+					//ApproachZ float32
+					//// Timestamp (UNIX Epoch time or time since system boot). The receiving end can infer timestamp format (since 1.1.1970 or since system boot) by checking for the magnitude of the number.
+					//TimeUsec uint64 `mavext:"true"`
 
 				case *ardupilotmega.MessageStatustext: // Id 253
 					fmt.Printf("Text status message from drone at: %v\n", time.Now().Format(time.RFC1123))
