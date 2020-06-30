@@ -124,6 +124,18 @@ func main() {
 					fmt.Printf("Ground speed - x: %d, y: %d, z: %d\n", msg.Vx, msg.Vy, msg.Vz)
 					fmt.Printf("Vehicle heading: %0.2f°\n", float32(msg.Hdg)/100.0)
 
+				case *ardupilotmega.MessageRcChannelsScaled: // Id 34
+					sinceBoot, err := time.ParseDuration(fmt.Sprintf("%dms", msg.TimeBootMs))
+					if err != nil {
+						panic(err)
+					}
+					fmt.Printf("Scaled RC Channel values message sent from drone at: %s after boot\n", sinceBoot)
+					fmt.Printf("Servo output port: %d, Receive signal str: %d\n", msg.Port, msg.Rssi)
+					fmt.Printf("RC channel values - 1: %d, 2: %d, 3: %d, 4: %d\n", msg.Chan1Scaled,
+						msg.Chan2Scaled, msg.Chan3Scaled, msg.Chan4Scaled)
+					fmt.Printf("RC channel values - 5: %d, 6: %d, 7: %d, 8: %d\n", msg.Chan5Scaled,
+						msg.Chan6Scaled, msg.Chan7Scaled, msg.Chan8Scaled)
+
 				case *ardupilotmega.MessageRcChannelsRaw: // Id 35
 					sinceBoot, err := time.ParseDuration(fmt.Sprintf("%dms", msg.TimeBootMs))
 					if err != nil {
