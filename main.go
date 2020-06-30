@@ -181,6 +181,10 @@ func main() {
 					fmt.Printf("Target system: %d, component: %d, # missions: %d, mission type: %s\n",
 						msg.TargetSystem, msg.TargetComponent, msg.Count, msg.MissionType)
 
+				case *ardupilotmega.MessageMissionItemReached: // Id 46
+					fmt.Printf("Mission item (%d) reached message from drone at %v\n", msg.Seq,
+						time.Now().Format(time.RFC1123))
+
 				case *ardupilotmega.MessageMissionAck: // Id 47
 					fmt.Printf("Mission ack message from drone at %v\n", time.Now().Format(time.RFC1123))
 					fmt.Printf("Target system: %d, component: %d\n", msg.TargetSystem, msg.TargetComponent)
@@ -337,28 +341,6 @@ func main() {
 					fmt.Printf("Angular speed around - x: %d, y: %d, z: %d\n", msg.Xgyro, msg.Ygyro, msg.Zgyro)
 					fmt.Printf("Magnetic field - x: %d, y: %d, z: %d\n", msg.Xmag, msg.Ymag, msg.Zmag)
 					fmt.Printf("Temp: %d\n", msg.Temperature)
-					//// Timestamp (time since system boot).
-					//TimeBootMs uint32
-					//// X acceleration
-					//Xacc int16
-					//// Y acceleration
-					//Yacc int16
-					//// Z acceleration
-					//Zacc int16
-					//// Angular speed around X axis
-					//Xgyro int16
-					//// Angular speed around Y axis
-					//Ygyro int16
-					//// Angular speed around Z axis
-					//Zgyro int16
-					//// X Magnetic field
-					//Xmag int16
-					//// Y Magnetic field
-					//Ymag int16
-					//// Z Magnetic field
-					//Zmag int16
-					//// Temperature, 0: IMU does not provide temperature values. If the IMU is at 0C it must send 1 (0.01C).
-					//Temperature int16 `mavext:"true"`
 
 				case *ardupilotmega.MessageTerrainRequest: // Id 133
 					fmt.Printf("Terrain request message from drone at %v\n", time.Now().Format(time.RFC1123))
@@ -536,35 +518,10 @@ func main() {
 					fmt.Printf("Simulation state message received from drone at: %s\n",
 						time.Now().Format(time.RFC1123))
 					fmt.Printf("Angle; roll: %0.2f, pitch: %0.2f, yaw: %0.2f\n", msg.Roll, msg.Pitch, msg.Yaw)
-					//// Roll angle.
-					//Roll float32
-					//// Pitch angle.
-					//Pitch float32
-					//// Yaw angle.
-					//Yaw float32
-
 					fmt.Printf("Accel; x: %0.2f, y: %0.2f, z: %0.2f\n", msg.Xacc, msg.Yacc, msg.Zacc)
-					//// X acceleration.
-					//Xacc float32
-					//// Y acceleration.
-					//Yacc float32
-					//// Z acceleration.
-					//Zacc float32
-
 					fmt.Printf("Angular spd around axis; x: %0.2f, y: %0.2f, z: %0.2f\n", msg.Xgyro, msg.Ygyro,
 						msg.Zgyro)
-					//// Angular speed around X axis.
-					//Xgyro float32
-					//// Angular speed around Y axis.
-					//Ygyro float32
-					//// Angular speed around Z axis.
-					//Zgyro float32
-
 					fmt.Printf("Lat: %d, lon: %d\n", msg.Lat, msg.Lng)
-					//// Latitude.
-					//Lat int32
-					//// Longitude.
-					//Lng int32
 
 				case *ardupilotmega.MessageHwstatus: // Id 165
 					fmt.Printf("Hardware status message from drone at %v\n", time.Now().Format(time.RFC1123))
@@ -801,8 +758,8 @@ func main() {
 					}
 
 				case *ardupilotmega.MessageParamRequestList: // Id 21
-					fmt.Printf("Request from GCS for all parameters from target system %d, component %d\n",
-						msg.TargetSystem, msg.TargetComponent)
+					fmt.Printf("Request from GCS for all parameters from target system %d, component %d at %v\n",
+						msg.TargetSystem, msg.TargetComponent, time.Now().Format(time.RFC1123))
 
 				case *ardupilotmega.MessageMissionRequestList: // Id 43
 					fmt.Printf("Request from GCS for the overall list of mission items (type %s) from target system %d, component %d\n",
@@ -811,6 +768,16 @@ func main() {
 				case *ardupilotmega.MessageMissionAck: // Id 47
 					fmt.Printf("Ack message (mission type %d, result %s) during waypoint handling from GCS for target system %d, component %d\n",
 						msg.MissionType, msg.Type, msg.TargetSystem, msg.TargetComponent)
+
+				case *ardupilotmega.MessageSetGpsGlobalOrigin: // Id 48
+					sinceBoot, err := time.ParseDuration(fmt.Sprintf("%dus", msg.TimeUsec))
+					if err != nil {
+						panic(err)
+					}
+					fmt.Printf("Set vehicle local origin GPS message sent from GCS at: %v since boot\n",
+						sinceBoot)
+					fmt.Printf("Target system: %d, Lat: %v, Lon: %v, Alt: %v\n", msg.TargetSystem, msg.Latitude,
+						msg.Longitude, msg.Altitude)
 
 				case *ardupilotmega.MessageMissionRequestInt: // Id 51
 					fmt.Printf("Request from GCS for mission item %d, type %s from target system %d, component %d\n",
@@ -823,11 +790,86 @@ func main() {
 					} else {
 						startOrStop = "stop"
 					}
-					fmt.Printf("RequestDataStream (%s) message from GCS, target system %d, component %d\n", startOrStop, msg.TargetSystem, msg.TargetSystem)
+					fmt.Printf("RequestDataStream (%s) message from GCS, target system %d, component %d at %v\n",
+						startOrStop, msg.TargetSystem, msg.TargetSystem, time.Now().Format(time.RFC1123))
+
+				case *ardupilotmega.MessageCommandInt: // Id 75
+					fmt.Printf("Command int ('%s') message received from GCS for target system %d, component %d\n",
+						msg.Command, msg.TargetSystem, msg.TargetComponent)
+					//// The coordinate system of the COMMAND.
+					//Frame MAV_FRAME `mavenum:"uint8"`
+					//// false:0, true:1
+					//Current uint8
+					//// autocontinue to next wp
+					//Autocontinue uint8
+					//// PARAM1, see MAV_CMD enum
+					//Param1 float32
+					//// PARAM2, see MAV_CMD enum
+					//Param2 float32
+					//// PARAM3, see MAV_CMD enum
+					//Param3 float32
+					//// PARAM4, see MAV_CMD enum
+					//Param4 float32
+					//// PARAM5 / local: x position in meters * 1e4, global: latitude in degrees * 10^7
+					//X int32
+					//// PARAM6 / local: y position in meters * 1e4, global: longitude in degrees * 10^7
+					//Y int32
+					//// PARAM7 / z position: global: altitude in meters (relative or absolute, depending on frame).
+					//Z float32
 
 				case *ardupilotmega.MessageCommandLong: // Id 76
 					fmt.Printf("Command long ('%s') message received from GCS for target system %d, component %d\n",
 						msg.Command, msg.TargetSystem, msg.TargetComponent)
+					//// 0: First transmission of this command. 1-255: Confirmation transmissions (e.g. for kill command)
+					//Confirmation uint8
+					//// Parameter 1 (for the specific command).
+					//Param1 float32
+					//// Parameter 2 (for the specific command).
+					//Param2 float32
+					//// Parameter 3 (for the specific command).
+					//Param3 float32
+					//// Parameter 4 (for the specific command).
+					//Param4 float32
+					//// Parameter 5 (for the specific command).
+					//Param5 float32
+					//// Parameter 6 (for the specific command).
+					//Param6 float32
+					//// Parameter 7 (for the specific command).
+					//Param7 float32
+
+				case *ardupilotmega.MessageSetPositionTargetGlobalInt: // Id 86
+					sinceBoot, err := time.ParseDuration(fmt.Sprintf("%dms", msg.TimeBootMs))
+					if err != nil {
+						panic(err)
+					}
+					fmt.Printf("Set desired vehicle position message sent from GCS at: %v since boot\n",
+						sinceBoot)
+					fmt.Printf("Target system: %d, component: %d\n", msg.TargetSystem, msg.TargetComponent)
+					fmt.Printf("Coordinate frame: %s, position typemask: %b\n", msg.CoordinateFrame,
+						msg.TypeMask)
+					fmt.Printf("Positions; x: %0.6f, y: %0.6f, Alt: %0.2fm, Velocity; x: %0.2f, y: %0.2f, z: %0.2f\n",
+						float32(msg.LatInt) / 10000000, float32(msg.LonInt) / 10000000, msg.Alt, msg.Vx, msg.Vy, msg.Vz)
+					fmt.Printf("Accel or force; x: %0.2f, y: %0.2f, z: %0.2f, yaw: %0.2f, yawrate: %0.2f\n",
+						msg.Afx, msg.Afy, msg.Afz, msg.Yaw, msg.YawRate)
+
+				case *ardupilotmega.MessageFileTransferProtocol: // Id 110
+					fmt.Printf("File transfer protocol message from GCS at %v\n", time.Now().Format(time.RFC1123))
+					fmt.Printf("Target network: %d, system: %d, component: %d\n", msg.TargetNetwork,
+						msg.TargetSystem, msg.TargetComponent)
+					fmt.Printf("Payload: %v\n", msg.Payload)
+
+				case *ardupilotmega.MessageTimesync: // Id 111
+					fmt.Printf("Time sync message from GCS at %v\n", time.Now().Format(time.RFC1123))
+					fmt.Printf("Timestamp1: %d, timestamp 2: %d\n", msg.Tc1, msg.Ts1)
+
+				case *ardupilotmega.MessageAutopilotVersionRequest: // Id 183
+					fmt.Printf("Autopilot version request from GCS at %v\n", time.Now().Format(time.RFC1123))
+					fmt.Printf("Target system: %d, component: %d\n", msg.TargetSystem, msg.TargetComponent)
+
+				case *ardupilotmega.MessageStatustext: // Id 253
+					fmt.Printf("Text status message from GCS at: %v\n", time.Now().Format(time.RFC1123))
+					fmt.Printf("Severity: %s, ID: %d, ChunkSeq: %d\n", msg.Severity, msg.Id, msg.ChunkSeq)
+					fmt.Printf("Text: %s\n", msg.Text)
 
 				default:
 					fmt.Printf("Undecoded message frame received from GCS at: %v\n", time.Now().Format(time.RFC1123))
